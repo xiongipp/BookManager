@@ -1,0 +1,667 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<html xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <title>Title</title>
+    <link rel="stylesheet" href="/css/mystyle.css">
+    <script src="/js/vue.js"></script>
+    <script src="/js/index.js"></script>
+    <script src="//unpkg.com/element-ui@2.12.0/lib/index.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/vue-resource@1.5.1"></script>
+    <script src="/js/moment-with-locales.min.js"></script>
+    <style>@import url("//unpkg.com/element-ui@2.12.0/lib/theme-chalk/index.css");</style>
+    <script src="/js/Ajax.js"></script>
+
+    <title>读者界面</title>
+</head>
+<div id="app">
+    <body class="row">
+    <h1>欢迎{{reader.rdname}}来借书</h1>
+    <el-tabs type="border-card">
+        <!--    借书界面-->
+        <el-tab-pane>
+            <span slot="label"><i class="el-icon-date"></i>书籍借阅</span>
+            <!--        书籍搜索功能-->
+            <el-row style="margin-bottom: 10px">
+                <el-select v-model="sType" placeholder="请选择搜索类型">
+                    <el-option
+                            v-for="item in serachTypes"
+                            :key="item.value"
+                            :label="item.label"
+                            :value="item.value">
+                    </el-option>
+                </el-select>
+                </el-select>
+                <el-input v-model="searchinfo" placeholder="输入检索字段" style="width: 300px"></el-input>
+                <el-button type="primary" icon="el-icon-search" @click="SearchBook">搜索</el-button>
+            </el-row>
+            <!--        分页组件-->
+            <el-row style="margin-bottom: 10px">
+                <!-- 分页组件-->
+                <el-pagination
+                        :page-size="page.size"
+                        layout="prev, pager, next"
+                        :total="page.total"
+                        :current-page="page.current"
+                        @current-change="handerbookPager"
+                >
+                </el-pagination>
+            </el-row>
+            <!--        书籍的显示-->
+            <el-row>
+                <el-col :span="19">
+                    <!--书籍简介信息-->
+                    <el-col :span="8" v-for="bk in book">
+                        <el-card :body-style="{ padding: '0px' }">
+                            <img :src="bk.bkcover" class="image" style="width: 300px;height: 300px">
+                            <div style="padding: 14px;">
+                                <span style="color: blue" icon="el-icon-s-management">{{bk.bkname}}</span>
+                                <div style="margin-bottom: 10px">
+                                    书籍状态:
+                                    <el-tag type="danger">{{bk.bkstatus}}</el-tag>
+                                </div>
+                                <div style="margin-bottom: 10px">
+                                    书籍作者:
+                                    <el-tag type="success">{{bk.bkauthor}}</el-tag>
+                                </div>
+                                <div style="margin-bottom: 10px">
+                                    书籍出版社:
+                                    <el-tag type="success">{{bk.bkpress}}</el-tag>
+                                </div>
+                                <div class="bottom clearfix">
+                                    <el-button class="button" :disabled="bk.bkstatus=='借出'?true:false"
+                                               @click="borrow(bk.bkid)">点我借书
+                                    </el-button>
+                                    <el-button @click="showDetail = !showDetail">
+                                        显示详情
+                                    </el-button>
+                                </div>
+
+                            </div>
+                        </el-card>
+                        <!--显示书籍的详情-->
+                        <div v-show="showDetail">
+                            <div class="transition-box">
+                                {{bk.bkbrief}}
+                            </div>
+                        </div>
+                    </el-col>
+                </el-col>
+
+            </el-row>
+
+        </el-tab-pane>
+        <!--    用户信息界面-->
+        <el-tab-pane>
+            <span slot="label"><i class="el-icon-date"></i>用户信息</span>
+            <!--        读者借阅信息-->
+            <el-card :body-style="{ padding: '0px' }">
+                <div slot="header">
+                    <span>我的借阅信息</span>
+                    <div>
+                        <el-form>
+                            <el-form-item label="用户名">
+                                <el-tag>{{reader.rdname}}</el-tag>
+                            </el-form-item>
+                            <el-form-item label="可借书籍本书">
+                                <el-tag>{{readerBorrowInfo.canborrownum}}</el-tag>
+                            </el-form-item>
+                            <el-form-item label="已借书籍本书">
+                                <el-tag>{{readerBorrowInfo.hashborrowbnum}}</el-tag>
+                            </el-form-item>
+                            <el-form-item label="读者类型">
+                                <el-tag>{{readerBorrowInfo.rdtype}}</el-tag>
+                            </el-form-item>
+                            <el-form-item label="所在院系">
+                                <el-tag>{{readerBorrowInfo.locate}}</el-tag>
+                            </el-form-item>
+                        </el-form>
+                    </div>
+                </div>
+            </el-card>
+            <!--        读者个人信息-->
+            <el-card>
+                <div slot="header">
+                    <span>我的个人信息</span>
+                    <div>
+                        <el-form>
+                            <el-form-item label="头像">
+                                　
+                                <template slot-scope="scope">
+                                    　　　　<img :src="reader.rdphoto" width="40" height="40" class="head_pic"/>
+                                    　　
+                                </template>
+                            </el-form-item>
+                            <el-form-item label="姓名">
+                                <el-tag>{{reader.rdname}}</el-tag>
+                            </el-form-item>
+                            <el-form-item label="性别">
+                                <el-tag>{{reader.rdsex}}</el-tag>
+                            </el-form-item>
+                            <el-form-item label="电话">
+                                <el-tag>{{reader.rdphone}}</el-tag>
+                            </el-form-item>
+                            <el-form-item label="密码">
+                                <el-tag>{{reader.rdpwd}}</el-tag>
+                            </el-form-item>
+                            <el-form-item label="所在系别">
+                                <el-tag>{{reader.rddept}}</el-tag>
+                            </el-form-item>
+                            <el-form-item label="注册时间">
+                                <el-tag>{{reader.rddatereg}}</el-tag>
+                            </el-form-item>
+                            <el-form-item label="邮箱">
+                                <el-tag>{{reader.rdemil}}</el-tag>
+                            </el-form-item>
+
+                        </el-form>
+                    </div>
+                </div>
+
+                <el-button style="float: right; padding: 3px 0" type="text" @click="alterMyInfo">修改个人信息</el-button>
+            </el-card>
+        </el-tab-pane>
+        <!--    还书续借界面-->
+        <el-tab-pane>
+            <span slot="label"><i class="el-icon-date"></i>续借和归还</span>
+            <el-tabs :tab-position='tabPosition' style="height: 800px;" @tab-click="changeMenu">
+                <el-tab-pane label="未还图书">
+                    <!--还书和续借的按钮-->
+                    <el-button type="primary" @click="returnBook" :disabled="idList.length>0?false:true">我要还书
+                    </el-button>
+                    <el-button type="warning" @click="continueBorrow" :disabled="idList.length>0?false:true">我要续借
+                    </el-button>
+                    <!--                        用户未还书籍表格-->
+                    <el-row>
+                        <el-table
+                                :data="borrowedBookTable"
+                                style="width: 100%"
+                                highlight-current-row
+                                @selection-change="handlerReturnAndContinue"
+                                ref="multipleTable">
+                            <el-table-column
+                                    type="selection"
+                                    width="55">
+                            </el-table-column>
+                            <el-table-column
+                                    prop="bkid"
+                                    label="图书id"
+                                    width="180">
+                            </el-table-column>
+                            <el-table-column
+                                    prop="bookname"
+                                    label="图书名称"
+                                    width="180">
+                            </el-table-column>
+                            <el-table-column
+                                    prop="authorname"
+                                    label="图书作者"
+                                    width="180">
+                            </el-table-column>
+                            <el-table-column
+                                    prop="idcountinuetimes"
+                                    label="续借次数"
+                                    width="180">
+                            </el-table-column>
+                            <el-table-column
+                                    prop="lddateout"
+                                    label="借阅日期"
+                                    width="180"
+                                    :formatter="dateFormat">
+                            </el-table-column>
+                            <el-table-column
+                                    prop="lddateretplan"
+                                    label="应还日期"
+                                    width="180"
+                                    :formatter="dateFormat">
+                            </el-table-column>
+                            <el-table-column
+                                    prop="ldoverday"
+                                    label="超期天数"
+                                    width="180">
+                            </el-table-column>
+
+                            <el-table-column
+                                    prop="ldovermoney"
+                                    label="罚款金额"
+                                    width="180">
+                            </el-table-column>
+                        </el-table>
+                    </el-row>
+                </el-tab-pane>
+                <el-tab-pane label="已还记录">
+                    <!--                        用户已还书籍表格-->
+                    <el-row>
+                        <el-table
+                                :data="borrowedBookTable"
+                                style="width: 100%">
+                            <el-table-column
+                                    prop="bkid"
+                                    label="图书id"
+                                    width="180">
+                            </el-table-column>
+                            <el-table-column
+                                    prop="bookname"
+                                    label="图书名称"
+                                    width="180">
+                            </el-table-column>
+                            <el-table-column
+                                    prop="authorname"
+                                    label="图书作者"
+                                    width="180">
+                            </el-table-column>
+                            <el-table-column
+                                    prop="idcountinuetimes"
+                                    label="续借次数"
+                                    width="180">
+                            </el-table-column>
+                            <el-table-column
+                                    prop="lddateout"
+                                    label="借阅日期"
+                                    width="180"
+                                    :formatter="dateFormat">
+                            </el-table-column>
+                            <el-table-column
+                                    prop="lddateretplan"
+                                    label="应还日期"
+                                    width="180"
+                                    :formatter="dateFormat">
+                            </el-table-column>
+                            <el-table-column
+                                    prop="lddateretact"
+                                    label="实际还书日期"
+                                    width="180"
+                                    :formatter="dateFormat">
+                            </el-table-column>
+                            <el-table-column
+                                    prop="ldoverday"
+                                    label="超期天数"
+                                    width="180">
+                            </el-table-column>
+
+                            <el-table-column
+                                    prop="ldovermoney"
+                                    label="罚款金额"
+                                    width="180">
+                            </el-table-column>
+                        </el-table>
+                    </el-row>
+                </el-tab-pane>
+            </el-tabs>
+
+
+        </el-tab-pane>
+        <!--    返回主菜单-->
+        <el-tab-pane>
+            <span slot="label"><i class="el-icon-date"></i>退出系统</span>
+            <el-link icon="el-icon-s-home" type="warning" href="/">点我返回主菜单</el-link>
+        </el-tab-pane>
+    </el-tabs>
+
+    </body>
+    <!--更改读者信息的对话框-->
+    <el-dialog
+            title="修改读者信息"
+            :visible.sync="readerAlterDialogVisible"
+            width="50%"
+            height="100%">
+        <!--                        姓名-->
+        <el-row>
+            <el-col :span="8">
+                <div style="margin-top: 10px">读者姓名</div>
+            </el-col>
+            <el-col :span="16">
+                <el-input v-model="reader.rdname" placeholder="请输入内容"
+                          style="width: 150px;margin-bottom: 10px"></el-input>
+            </el-col>
+        </el-row>
+        <!--                        密码-->
+        <el-row>
+            <el-col :span="8">
+                <div style="margin-top: 10px">密码</div>
+            </el-col>
+            <el-col :span="16">
+                <el-input v-model="reader.rdpwd" placeholder="请输入内容"
+                          style="width: 150px;margin-bottom: 10px"></el-input>
+            </el-col>
+        </el-row>
+        <!--                        性别-->
+        <el-row>
+            <el-col :span="8">
+                <div style="margin-top: 10px">性别</div>
+            </el-col>
+            <el-col :span="16">
+                <el-select v-model="reader.rdsex" placeholder="选择性别" style="margin-bottom: 10px">
+                    <el-option
+                            v-for="item in sexs"
+                            :key="item.value"
+                            :label="item.label"
+                            :value="item.value"
+                            style="margin-bottom: 10px">
+                    </el-option>
+                </el-select>
+            </el-col>
+        </el-row>
+        <!--                读者单位-->
+        <el-row style="margin-top: 20px">
+
+            <el-col :span="6">
+                单位
+            </el-col>
+            <el-col :span="18">
+                <el-select v-model="reader.rddept" placeholder="选择单位">
+                    <el-option
+                            v-for="item in readerLocs"
+                            :key="item.value"
+                            :label="item.label"
+                            :value="item.value"
+                            style="margin-bottom: 10px">
+                    </el-option>
+                </el-select>
+            </el-col>
+        </el-row>
+        <!--                电话号码-->
+        <el-row style="margin-top: 20px">
+            <el-col :span="6">号码</el-col>
+            <el-col :span="18">
+                <el-input placeholder="号码" v-model="reader.rdphone"></el-input>
+            </el-col>
+
+        </el-row>
+        <!--                电子邮件-->
+        <el-row style="margin-top: 20px">
+            <el-col :span="6">邮件</el-col>
+            <el-col :span="18">
+                <el-input placeholder="邮件" v-model="reader.rdemil"></el-input>
+            </el-col>
+
+        </el-row>
+
+        <el-button @click="readerAlterDialogVisible = false">取 消</el-button>
+        <el-button type="primary" @click="readerAlterDialogVisible= false;confrimEdit()">确认更改</el-button>
+    </el-dialog>
+</div>
+</html>
+
+<script>
+    var Main = {
+        data() {
+            return {
+
+                //显示书籍详情
+                showDetail:false,
+                //标签悬浮位置
+                tabPosition: 'left',
+                ajax: null,
+                idList: [],
+                //读者信息
+                reader: {
+                    rdadminroles: '',
+                    rdborrowqty: '',
+                    rddatereg: '',
+                    rddept: "",
+                    rdemil: "",
+                    rdid: '',
+                    rdname: "",
+                    rdphone: "",
+                    rdphoto: "",
+                    rdpwd: "",
+                    rdsex: "",
+                    rdstatus: "",
+                    rdtype: '',
+                },
+                //书籍信息
+                book: [],
+                borrowedBookTable: [],
+                //    导航栏的参数
+                rid: '',
+                //搜索类型下拉框参数
+                serachTypes: [
+                    {
+                        value: 1,
+                        label: '书名'
+                    },
+                    {
+                        value: 2,
+                        label: '作者'
+                    },
+                    {
+                        value: 3,
+                        label: '出版社'
+                    },
+                ],
+                sType: 1,
+
+                //搜索栏输入信息
+                searchinfo: '',
+                //这是与分页组件绑定的数据
+                page: {
+                    current: 1,
+                    total: 0,
+                    size: 12,
+                },
+                //读者借阅权限信息存放数据
+                readerBorrowInfo: {
+                    name: '',
+                    locate: '',
+                    rdtype: '',
+                    canborrownum: '',
+                    canborrorday: '',
+                    hashborrowbnum: '',
+                },
+                //读者修改信息对话框
+                readerAlterDialogVisible: false,
+                //搜素框栏的读者所在单位选择框的数据
+                readerLocs: [
+                    {
+                        value: '计算机科学学院',
+                        label: '计算机科学学院',
+                    },
+                    {
+                        value: '软件工程学院',
+                        label: '软件工程学院',
+                    },
+                    {
+                        value: '物联网',
+                        label: '物联网',
+                    },
+                    {
+                        value: '网络安全',
+                        label: '网络安全',
+                    },
+                ],
+                //读者信息栏性别选择框对应数据
+                sexs: [
+                    {
+                        value: '男',
+                        label: '男',
+                    },
+                    {
+                        value: '女',
+                        label: '女',
+                    },
+                ],
+                sex: '男',
+            }
+        },
+        created() {
+            let that = this;
+            that.ajax = new Ajax(this);
+            that.rid = that.getUrlKey('rdId')
+            that.getReaderById(that.rid);
+            that.getAllBook();
+            that.getBorrwoInfo();//读者借阅权限信息（可借本书，已借本数）
+            that.getBorrowedInfo()//更新读者借阅信息
+
+        },
+        methods: {
+            changeMenu(tab, event) {
+                let that = this;
+                if (tab.label == '未还图书') {
+                    //用户借阅信息(已借图书信息)
+                    that.getBorrowedInfo();
+                }
+                if (tab.label == '已还记录') {
+                    //用户借阅信息(已还图书信息)
+                    that.getReturnedBookInfo();
+                }
+            },
+
+            //显示读者信息修改的对话框
+            alterMyInfo() {
+                let that = this;
+                that.readerAlterDialogVisible = true;
+            },
+            //确认信息修改
+            confrimEdit() {
+                let that = this;
+                that.ajax.put("/reader", function (rs) {
+                    alert(rs.msg);
+                    that.getReaderById(that.rid)
+                }, that.reader);
+
+            },
+            //根据id获取读者可以借书权限信息，包括可借数，已借数，读者名字等
+            getBorrwoInfo() {
+                let that = this;
+                that.ajax.get("readerBorrowInfo/getInfo?id=" + that.rid, function (rs) {
+                    if (rs.msg == 'ok') {
+                        that.readerBorrowInfo.name = rs.name;
+                        that.readerBorrowInfo.locate = rs.locate;
+                        that.readerBorrowInfo.hashborrowbnum = rs.hasLearned;
+                        that.readerBorrowInfo.canborrownum = rs.canBorrowNum;
+                        that.readerBorrowInfo.canborrorday = rs.canBorrowDay;
+                        that.readerBorrowInfo.rdtype = rs.readerType;
+                    } else {
+                        alert(rs.msg);
+                    }
+
+                })
+            },
+            //图书分页组件
+            handerbookPager(current) {
+                let that = this;
+                that.page.current = current;
+                that.getAllBook();
+            },
+            //图书搜索
+            SearchBook() {
+                let that = this;
+                if (that.sType == 1) {
+                    that.ajax.get("book/getByName?bookname=" + that.searchinfo, function (rs) {
+                        that.book = rs.data.records;
+                    })
+                }
+                if (that.sType == 2) {
+                    that.ajax.get("book/getByAuthor?authorname=" + that.searchinfo, function (rs) {
+                        that.book = rs.data.records;
+                    })
+                }
+                if (that.sType == 3) {
+                    that.ajax.get("book/getByPress?pressname=" + that.searchinfo, function (rs) {
+                        that.book = rs.data.records;
+                    })
+                }
+            },
+            //借书函数
+            borrow(id) {
+                let that = this;
+                console.log(id);
+                that.ajax.get("borrow/borrowBook?rdId=" + that.rid + "&bkId=" + id, function (rs) {
+                    alert(rs.msg)
+                    that.getAllBook();//更新书籍信息
+                    that.getBorrwoInfo();//更新借阅信息
+                    that.getBorrowedInfo()//更新读者借阅信息
+
+                });
+            },
+            //获取地址栏参数的功能函数
+            getUrlKey(name) {
+                return decodeURIComponent((new RegExp('[?|&]' + name + '=' + '([^&;]+?)(&|#|;|$)').exec(location.href) || [, ""])[1].replace(/\+/g, '%20')) || null
+            },
+            getReaderById(id) {
+                let that = this;
+                that.ajax.get("reader/" + id, function (rs) {
+                    console.log(rs)
+                    that.reader = rs.data;
+                })
+            },
+            getAllBook() {
+                let that = this;
+                that.ajax.get("book?size=" + that.page.size + "&current=" + that.page.current, function (rs) {
+                    that.page.total = rs.data.total;
+                    that.book = rs.data.records;
+                })
+            },
+            //取得用户借阅信息(已借图书信息)
+            getBorrowedInfo() {
+                let that = this;
+                that.ajax.get("borrow/getBorrowedBookInfo?rdId=" + that.rid, function (rs) {
+                    that.borrowedBookTable = rs.data;
+                })
+            },
+            //取得还书的信息
+            getReturnedBookInfo() {
+                let that = this;
+                that.ajax.get("borrow/getReturnedBookInfo?rdId=" + that.rid, function (rs) {
+                    that.borrowedBookTable = rs.data;
+                })
+            },
+            //将选中的书籍ID放入idList
+            handlerReturnAndContinue(section) {
+                let that = this
+                that.idList = []
+                section.forEach(element => {
+                    that.idList.push(element.bkid);
+                })
+            },
+            //前台转化后台的日期
+            dateFormat: function (row, column) {
+                var date = row[column.property];
+                if (date == undefined) {
+                    return "";
+                }
+                return moment(date).format("YYYY-MM-DD HH:mm");
+            },
+
+            //还书
+            returnBook() {
+                let that = this;
+                if (that.idList.length > 1) {
+                    alert("你一次只能还一本")
+                }
+                if (that.idList.length == 1) {
+                    console.log(that.idList[0])
+                    that.ajax.get("borrow/returnBook?rdId=" + that.rid + "&bkId=" + that.idList[0], function (rs) {
+                        alert(rs.msg)
+                        that.getAllBook();//更新书籍表格数据
+                        that.getBorrowedInfo();//更新读者借阅记录
+                        that.getBorrwoInfo();//更新读者已借书数量
+                        that.getReturnedBookInfo();//更新还书记录
+                    });
+
+                }
+            },
+            //续借
+            continueBorrow() {
+                let that = this;
+                if (that.idList.length > 1) {
+                    alert("你一次只能续借一本")
+                }
+                if (that.idList.length == 1) {
+                    console.log(that.idList[0])
+                    that.ajax.get("borrow/continueBorrow?rdId=" + that.rid + "&bkId=" + that.idList[0], function (rs) {
+                        alert(rs.msg)
+                        that.getAllBook();//更新书籍表格数据
+                        that.getBorrowedInfo();//更新读者借阅记录
+
+                    });
+                }
+            },
+        }
+    }
+    var Ctor = Vue.extend(Main)
+    new Ctor().$mount('#app')
+</script>

@@ -1,0 +1,108 @@
+<!DOCTYPE html>
+<html lang="en">
+<html xmlns:th="http://www.thymeleaf.org">
+
+<head>
+    <meta charset="UTF-8">
+    <title>Title</title>
+    <script src="/js/vue.js"></script>
+    <script src="//unpkg.com/element-ui@2.12.0/lib/index.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/vue-resource@1.5.1"></script>
+    <style>
+        @import url("//unpkg.com/element-ui@2.12.0/lib/theme-chalk/index.css");
+    </style>
+    <script src="/js/Ajax.js"></script>
+    <title>登录界面</title>
+</head>
+<div id="app">
+    <div class="page-header">
+        <h1>登录界面</h1>
+    </div>
+
+    <body class="row">
+        <div class="col-lg-10">
+            <el-form :label-position="labelPosition" label-width="100px" :model="form" style="margin: 40px auto;">
+                <img src="image/bookLogin.jpg" style="margin-left: 100px" />
+                <div>读者输入读者Id,管理员输入用户名root</div>
+                <el-form-item label="用户名">
+                    <el-input v-model="form.rdId" style="width: 300px"></el-input>
+                </el-form-item>
+                <el-form-item label="密码">
+                    <el-input v-model="form.rdPwd" style="width: 300px"></el-input>
+                </el-form-item>
+                <el-radio v-model="userType" label="1">管理员</el-radio>
+                <el-radio v-model="userType" label="2">用户</el-radio>
+                <el-form-item>
+                    <el-button type="primary" @click="onSubmit">登录</el-button>
+                </el-form-item>
+
+            </el-form>
+        </div>
+    </body>
+</div>
+
+</html>
+
+<script>
+    var Main = {
+        data() {
+            return {
+                ajax: null,
+                form: {
+                    rdId: '',
+                    rdPwd: '',
+                },
+                userType: '1',
+                labelPosition: 'right'
+            }
+        },
+        created() {
+            this.ajax = new Ajax(this);
+        },
+        methods: {
+            onSubmit() {
+
+                let that = this;
+                if (that.form.rdId != '') {
+                    if (that.form.rdPwd != '') {
+                        //管理员登录
+                        if (that.userType == '1') {
+                            that.ajax.get("/admin/login?adname=" + that.form.rdId + "&adpwd=" + that.form.rdPwd,
+                                function (rs) {
+                                    if (rs.msg == '登录成功') {
+                                        console.log(rs)
+                                        alert(rs.msg)
+                                        window.location.href = '/MainFrame?adId=' + that.form.rdId;
+                                    } else {
+                                        alert(rs.msg)
+                                    }
+                                })
+                        }
+                        if (that.userType == '2') {
+                            that.ajax.get("/reader/login?rdId=" + that.form.rdId + "&rdpwd=" + that.form.rdPwd,
+                                function (rs) {
+                                    if (rs.msg == '登录成功') {
+                                        console.log(rs)
+                                        alert(rs.msg)
+                                        window.location.href = '/readerFrame?rdId=' + that.form.rdId;
+                                    } else {
+                                        alert(rs.msg)
+                                    }
+                                })
+
+                        }
+
+                    } else {
+                        alert("密码为空")
+                    }
+
+                } else {
+                    alert("用户名不空")
+                }
+
+            }
+        }
+    }
+    var Ctor = Vue.extend(Main)
+    new Ctor().$mount('#app')
+</script>
